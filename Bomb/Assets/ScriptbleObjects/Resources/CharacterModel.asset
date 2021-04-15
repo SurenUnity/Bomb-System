@@ -13,4 +13,5 @@ MonoBehaviour:
   m_Name: CharacterModel
   m_EditorClassIdentifier: 
   characterModel:
-    health: 100
+    health:
+      value: 100

@@ -1,70 +1,56 @@
 ﻿using System;
-using System.Collections.Generic;
 using Models;
 using UniRx;
 using UnityEngine;
 using Views;
 using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
 
 namespace Controllers
 {
     public class CharacterController
     {
-        private List<CharacterView> _characters = new List<CharacterView>();
+        public event Action<CharacterController> dieCharacter;
 
-        private const float _maxValueTimerInSeconds = 10;
+        private CharacterView _character;
 
-        private const int _pointY = 0;
+        private CharacterModel _model;
 
-        private const float _minValuePointZ = -20;
-        private const float _minValuePointX = -20;
-
-        private const float _maxValuePointZ = 20;
-        private const float _maxValuePointX = 20;
-
-        private CompositeDisposable _disposable = new CompositeDisposable();
-
-        public CharacterController()
+        public CharacterController(CharacterModel model)
         {
-            Observable.Timer(TimeSpan.FromSeconds(Random.Range(0, _maxValueTimerInSeconds)))
-                .Repeat()
-                .Subscribe(_ => CreateCharacter())
-                .AddTo(_disposable);
+            _model = model;
+            _model.health
+                .ObserveEveryValueChanged(h => h.Value)
+                .Subscribe(ChangeHp);
         }
 
-        private void CreateCharacter()
+        public void CreateCharacter(Vector3 position, Quaternion rotation)
         {
-            var randomXPos = Random.Range(_minValuePointX, _maxValuePointX);
-            var randomZPos = Random.Range(_minValuePointZ, _maxValuePointZ);
+            _character = Object.Instantiate(Resources.Load<CharacterView>("Character"), position,
+                rotation);
 
-            var randomPosition = new Vector3(randomXPos, _pointY, randomZPos);
-
-            var character = Object.Instantiate(Resources.Load<CharacterView>("Character"), randomPosition,
-                Quaternion.identity);
-            var characterModel = Object.Instantiate(Resources.Load<Character>("CharacterModel")).characterModel;
-
-            character.Init(characterModel);
-
-            character.takeDamage += TakeDamage;
-
-            _characters.Add(character);
+            _character.takeDamage += TakeDamage;
         }
 
-        private void TakeDamage(float damageValue, CharacterView characterView)
+        private void TakeDamage(int damageValue)
         {
-            var isDie = characterView.Model.TakeDamageAndCheckDie(damageValue);
+            _model.health.Value -= damageValue;
 
-            Die(isDie, characterView);
+            if (_model.health.Value <= 0)
+            {
+                Die();
+            }
         }
 
-        private void Die(bool isDie, CharacterView characterView)
+        private void ChangeHp(int hpValue)
         {
-            if (!isDie) return;
+            // Меняем визуал Вью
+        }
 
-            characterView.takeDamage -= TakeDamage;
-            _characters.Remove(characterView);
-            Object.Destroy(characterView.gameObject);
+        private void Die()
+        {
+            _character.takeDamage -= TakeDamage;
+            Object.Destroy(_character.gameObject);
+            dieCharacter?.Invoke(this);
         }
     }
 }

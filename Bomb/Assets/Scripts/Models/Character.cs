@@ -1,4 +1,5 @@
 ﻿using System;
+using UniRx;
 using UnityEngine;
 
 namespace Models
@@ -12,11 +13,11 @@ namespace Models
     [Serializable]
     public class CharacterModel
     {
-        public int health;
+        public ReactiveProperty<int> health;
 
-        public bool TakeDamageAndCheckDie(float damageValue)
+        public CharacterModel()
         {
-            return health - damageValue <= 0;
+            health = new ReactiveProperty<int>();
         }
     }
 }

@@ -1,81 +1,56 @@
 ﻿using System;
-using System.Collections.Generic;
 using Interfaces;
 using Models;
-using UniRx;
 using UnityEngine;
 using Views;
 using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
 
 namespace Controllers
 {
     public class BombController
     {
-        private List<BombView> _bombs = new List<BombView>();
+        public event Action<BombController> destroyBomb;
 
-        private const float _maxValueTimerInSeconds = 10;
+        private BombView _bombView;
+        private BombModel _model;
 
-        private const int _pointY = 10;
-
-        private const float _minValuePointZ = -20;
-        private const float _minValuePointX = -20;
-
-        private const float _maxValuePointZ = 20;
-        private const float _maxValuePointX = 20;
-
-        private CompositeDisposable _disposable = new CompositeDisposable();
-
-        public BombController()
+        public BombController(BombModel bombModel)
         {
-            Observable.Timer(TimeSpan.FromSeconds(Random.Range(0, _maxValueTimerInSeconds)))
-                .Repeat()
-                .Subscribe(_ => CreateBomb())
-                .AddTo(_disposable);
+            _model = bombModel;
         }
 
-        private void CreateBomb()
+        public void CreateBomb(Vector3 position, Quaternion rotation)
         {
-            var randomXPos = Random.Range(_minValuePointX, _maxValuePointX);
-            var randomZPos = Random.Range(_minValuePointZ, _maxValuePointZ);
+            _bombView = Object.Instantiate(Resources.Load<BombView>("Bomb"), position,
+                rotation);
 
-            var randomPosition = new Vector3(randomXPos, _pointY, randomZPos);
-
-            var bomb = Object.Instantiate(Resources.Load<BombView>("Bomb"), randomPosition,
-                Quaternion.identity);
-            var bombModel = Object.Instantiate(Resources.Load<Bomb>("BombModel")).bombModel;
-
-            bomb.Init(bombModel);
-
-            bomb.onCollisionEnter += OnCollisionEnter;
-
-            _bombs.Add(bomb);
+            _bombView.onCollisionEnter += OnCollisionEnter;
         }
 
-        private void OnCollisionEnter(Collision collider, BombView currentBomb)
+        private void OnCollisionEnter(Collision collider)
         {
-            Explode(currentBomb);
+            Explode();
         }
 
-        private void Explode(BombView bombView)
+        private void Explode()
         {
             var colliders =
-                Physics.OverlapSphere(bombView.transform.position, bombView.Model.radiusDamage);
+                Physics.OverlapSphere(_bombView.transform.position, _model.radiusDamage);
 
             foreach (var collider in colliders)
             {
                 var character = collider.GetComponent<IDamage>();
-                character?.TakeDamage(bombView.Model.damageValue);
+                character?.TakeDamage(_model.damageValue);
             }
 
-            DestroyBomb(bombView);
+            DestroyBomb();
         }
 
-        private void DestroyBomb(BombView bombView)
+        private void DestroyBomb()
         {
-            bombView.onCollisionEnter -= OnCollisionEnter;
-            _bombs.Remove(bombView);
-            Object.Destroy(bombView.gameObject);
+            _bombView.onCollisionEnter -= OnCollisionEnter;
+            Object.Destroy(_bombView.gameObject);
+            destroyBomb?.Invoke(this);
         }
     }
 }

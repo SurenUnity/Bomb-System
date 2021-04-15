@@ -13,6 +13,6 @@ namespace Models
     public class BombModel
     {
         public float radiusDamage;
-        public float damageValue;
+        public int damageValue;
     }
 }

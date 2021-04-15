@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: BombModel
   m_EditorClassIdentifier: 
   bombModel:
-    radiusDamage: 5
+    radiusDamage: 10
     damageValue: 100
